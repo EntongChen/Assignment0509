@@ -1,5 +1,3 @@
 import streamlit as st
 
-st.write(5240)
-st.write(5240)
-st.write(5240)
+st.write("Hello, *World!* :sunglasses:")
