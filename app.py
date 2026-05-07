@@ -23,7 +23,7 @@ if uploaded_file is not None:
 
     image_to_text_model = pipeline("image-to-text", 
                                    model="Salesforce/blip-image-captioning-base")
-    text = image_to_text_model(uploaded_file.name)[0]["generated_text"]
+    scebarui = image_to_text_model(uploaded_file.name)[0]["generated_text"]
     
     st.write(f"**Scenario (new):** {scenario}")
 
