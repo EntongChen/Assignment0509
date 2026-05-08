@@ -10,7 +10,7 @@ def load_img2text_model():
 
 @st.cache_resource
 def load_story_model():
-    return pipeline("text-generation", model="pranavpsv/gpt2-genre-story-generator")
+    return pipeline("text-generation", model="distilgpt2")
 
 @st.cache_resource
 def load_audio_model():
