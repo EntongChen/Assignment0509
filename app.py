@@ -4,6 +4,23 @@
 import streamlit as st
 from transformers import pipeline
 
+# Function part
+# img2text
+def img2text(url):
+    image_to_text_model = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
+    text = image_to_text_model(url)[0]["generated_text"]
+    return text
+
+# text2story
+def text2story(text):
+    story_text = ""   # to be completed
+    return story_text
+
+# text2audio
+def text2audio(story_text):
+    audio_data = ""     # to be completed
+    return audio_data
+
 # Main part
 st.set_page_config(page_title="Your Image to Audio Story", page_icon="🦜")
 st.header("Turn Your Image to Audio Story")
@@ -29,7 +46,9 @@ if uploaded_file is not None:
     # Stage 2: Text to Story (Inline)
     st.text('Generating a story...')
     story_pipe = pipeline("text-generation", model="pranavpsv/genre-story-generator-v2")
-    story_results = story_pipe(scenario)
+
+    prompt = "Write a story for 3-10 year old kid" + scenario
+    story_results = story_pipe(prompt)
     story = story_results[0]['generated_text']
     st.write(f"**Story:** {story}")
 
