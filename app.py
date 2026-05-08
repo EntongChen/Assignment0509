@@ -1,64 +1,95 @@
-# Program title: Storytelling App
-
-# Import part
 import streamlit as st
 from transformers import pipeline
+import torch
 
-# Function part
-# img2text
-def img2text(url):
-    image_to_text_model = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
-    text = image_to_text_model(url)[0]["generated_text"]
-    return text
+# --- 1. 缓存模型加载 (解决性能问题和云端崩溃) ---
+@st.cache_resource
+def load_image_to_text_pipe():
+    # 自动推断任务，避免 KeyError
+    return pipeline(model="Salesforce/blip-image-captioning-base")
 
-# text2story
-def text2story(text):
-    story_text = ""   # to be completed
-    return story_text
+@st.cache_resource
+def load_story_gen_pipe():
+    # 使用专门的故事生成模型
+    return pipeline("text-generation", model="pranavpsv/genre-story-generator-v2")
 
-# text2audio
-def text2audio(story_text):
-    audio_data = ""     # to be completed
-    return audio_data
+@st.cache_resource
+def load_tts_pipe():
+    # 使用标准的 text-to-speech 任务名
+    return pipeline("text-to-speech", model="facebook/mms-tts-eng")
 
-# Main part
-st.set_page_config(page_title="Your Image to Audio Story", page_icon="🦜")
-st.header("Turn Your Image to Audio Story")
-uploaded_file = st.file_uploader("Select an Image...")
+# --- 2. 模块化功能函数 (符合评分标准) ---
 
-if uploaded_file is not None:
-    # Save file locally
-    bytes_data = uploaded_file.getvalue()
-    with open(uploaded_file.name, "wb") as file:
-        file.write(bytes_data)
+def img2text(image_file):
+    """将上传的图片转换为文字描述"""
+    pipe = load_image_to_text_pipe()
+    # 直接处理上传的文件对象
+    results = pipe(image_file)
+    return results[0]["generated_text"]
 
-    st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
-
-    # Stage 1: Image to Text (Using the function)
-    st.text('Processing img2text...')
-    #scenario = img2text(uploaded_file.name)
-    image_to_text_model = pipeline("image-to-text", 
-                                   model="Salesforce/blip-image-captioning-base")
-    scenario = image_to_text_model(uploaded_file.name)[0]["generated_text"]
+def text2story(scenario):
+    """根据描述为 3-10 岁儿童生成 50-100 字的故事"""
+    pipe = load_story_gen_pipe()
     
-    st.write(f"**Scenario:** {scenario}")
-
-    # Stage 2: Text to Story (Inline)
-    st.text('Generating a story...')
-    story_pipe = pipeline("text-generation", model="pranavpsv/genre-story-generator-v2")
-
-    prompt = "Write a story for 3-10 year old kid" + scenario
-    story_results = story_pipe(prompt)
+    # 优化 Prompt：明确受众和风格
+    prompt = f"Write a fun, simple, and engaging story for a 5-year-old kid based on this scenario: {scenario}. The story must be between 50 and 100 words."
+    
+    # 修改参数：确保长度符合要求 (50-100 words)
+    # max_new_tokens 设为 150 左右以确保故事完整，min_new_tokens 确保不低于 50
+    story_results = pipe(prompt, max_new_tokens=150, min_new_tokens=60, do_sample=True, temperature=0.7)
+    
     story = story_results[0]['generated_text']
-    st.write(f"**Story:** {story}")
+    
+    # 如果模型把 prompt 也返回了，可以尝试清理（取决于具体模型表现）
+    if prompt in story:
+        story = story.replace(prompt, "").strip()
+        
+    return story
 
-    # Stage 3: Story to Audio (Inline)
-    st.text('Generating audio data...')
-    audio_pipe = pipeline("text-to-audio", model="Matthijs/mms-tts-eng")
-    audio_data = audio_pipe(story)
+def text2audio(story_text):
+    """将故事文字转换为语音数据"""
+    pipe = load_tts_pipe()
+    return pipe(story_text)
 
-    # Play button
-    if st.button("Play Audio"):
-        audio_array = audio_data["audio"]
-        sample_rate = audio_data["sampling_rate"]
-        st.audio(audio_array, sample_rate=sample_rate)
+# --- 3. 主程序界面 (Streamlit UI) ---
+
+def main():
+    st.set_page_config(page_title="Kids Storyteller", page_icon="🦜")
+    st.header("Turn Your Image to Audio Story")
+    st.markdown("### 👶 A magical storytelling app for kids (3-10 years old)")
+
+    uploaded_file = st.file_uploader("Select an Image...", type=["jpg", "jpeg", "png"])
+
+    if uploaded_file is not None:
+        # 显示图片
+        st.image(uploaded_file, caption="Your Uploaded Image", use_container_width=True)
+
+        # 阶段 1: 图像转文字
+        with st.status("🔍 Reading the image...", expanded=True) as status:
+            scenario = img2text(uploaded_file)
+            st.write(f"**Scenario:** {scenario}")
+            
+            # 阶段 2: 生成故事
+            st.write("✍️ Crafting a story for you...")
+            story = text2story(scenario)
+            
+            # 阶段 3: 生成语音
+            st.write("🎙️ Converting story to audio...")
+            audio_data = text2audio(story)
+            status.update(label="✅ All done!", state="complete", expanded=False)
+
+        # 展示结果
+        st.subheader("📖 The Story")
+        st.info(story)
+        
+        # 检查字数（方便你确认是否达标）
+        word_count = len(story.split())
+        st.caption(f"Word count: {word_count} words")
+
+        st.subheader("🎧 Listen to the Story")
+        st.audio(audio_data["audio"], sample_rate=audio_data["sampling_rate"])
+        
+        st.balloons() # 成功后放个气球，增加童趣
+
+if __name__ == "__main__":
+    main()
