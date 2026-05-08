@@ -10,11 +10,11 @@ def load_img2text_model():
 
 @st.cache_resource
 def load_story_model():
-    return pipeline("text-generation", model="pranavpsv/genre-story-generator-v2")
+    return pipeline("text-generation", model="gpt2")
 
 @st.cache_resource
 def load_audio_model():
-    return pipeline("text-to-speech", model="facebook/mms-tts-eng")
+    return pipeline("text-to-speech", model="Matthijs/mms-tts-eng")
 
 # --- 2. Function Part (保留老师给的函数名和结构) ---
 
@@ -33,7 +33,7 @@ def text2story(text):
     story_pipe = load_story_model()
     # 补全逻辑：加入针对 3-10 岁儿童的 Prompt 和长度控制
     prompt = f"Write a fun story for a 5-year-old kid based on this: {text}. The story should be 50-100 words."
-    story_results = story_pipe(prompt, max_new_tokens=150, min_new_tokens=60, do_sample=True)
+    story_results = story_pipe(prompt, max_new_tokens=100, min_new_tokens=50, do_sample=True)
     story_text = story_results[0]['generated_text']
     # 清理掉生成的文本中可能包含的 prompt
     if prompt in story_text:
