@@ -1,6 +1,5 @@
 import streamlit as st
 from transformers import pipeline
-from transformers import AutoModel
 from PIL import Image
 import torch
 
@@ -39,7 +38,7 @@ def text2story(text):
     # 清理掉生成的文本中可能包含的 prompt
     if prompt in story_text:
         story_text = story_text.replace(prompt, "").strip()
-    return story_text
+    return story_text[:500] 
 
 # text2audio
 def text2audio(story_text):
