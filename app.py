@@ -4,11 +4,7 @@
 import streamlit as st
 from transformers import pipeline
 
-# Function part
-def img2text(url):
-    image_to_text_model = pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
-    text = image_to_text_model(url)[0]["generated_text"]
-    return text
+
     
 # Main part
 st.set_page_config(page_title="Your Image to Audio Story", page_icon="🦜")
