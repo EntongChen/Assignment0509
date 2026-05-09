@@ -41,7 +41,6 @@ def text2story(text):
         f"<|user|>\n"
         f"Description: {text}\n"
         f"<|assistant|>\n"
-        f"Once upon a time, "
     )
     
     # 3. 调整模型参数：
@@ -59,7 +58,7 @@ def text2story(text):
     
     full_text = story_results[0]['generated_text']
     
-    # 4. 提取 AI 生成的部分（保留 "Once upon a time"）
+    # 4. 提取 AI 生成的部分
     story = full_text.split("<|assistant|>")[-1].strip()
     
     # 5. 改进截断逻辑：按完整句子截断，而不是按字符数硬截断
