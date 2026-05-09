@@ -10,7 +10,7 @@ def load_img2text_model():
 
 @st.cache_resource
 def load_story_model():
-    return pipeline("text-generation", model="gpt2")
+    return pipeline("text-generation", model="TinyLlama/TinyLlama-1.1B-Chat-v1.0")
 
 @st.cache_resource
 def load_audio_model():
@@ -31,48 +31,53 @@ def img2text(url):
 def text2story(text):
     story_pipe = load_story_model()
     
-    # 1. 修正变量名：将传入的 text 放入 User 描述中
-    # 2. 强化 Prompt：明确要求单词数量区间
+    # --- 优化 1: 简化指令，把图片描述放在最后 (Recency Bias 优化) ---
+    # 这样模型在开始生成时，脑子里最后留下的信息就是你的图片描述
     prompt = (
-    f"<|system|>\n"
-    f"You are a professional children's book author. Your task is to turn a specific visual description into a coherent, imaginative story for 5-year-olds.\n"
-    f"RULES:\n"
-    f"1. STICK CLOSELY to the elements mentioned in the description. Do not add random characters or themes.\n"
-    f"2. Length: Must be between 50 and 100 words.\n"
-    f"3. Tone: Whimsical, warm, and engaging.\n"
-    f"4. Language: Simple English.\n"
-    f"<|user|>\n"
-    f"Here is the image description to turn into a story: {text}\n"
-    f"<|assistant|>\n"
-    f"Certainly! Here is a fun story based on that description: Once upon a time,"
-)
+        f"<|system|>\n"
+        f"You are a children's storyteller. Write a 60-word story for a 5-year-old.\n"
+        f"Rule: The story MUST be about the elements in the description.\n"
+        f"<|user|>\n"
+        f"Description: {text}\n"
+        f"<|assistant|>\n"
+        f"Here is a story about {text}: Once upon a time,"
+    )
     
-    # 3. 调整模型参数：
-    # min_new_tokens: 强制模型至少生成一定数量的 token（约 70-80 tokens 对应 50+ 单词）
-    # max_new_tokens: 限制上限（约 140-150 tokens 对应 100+ 单词）
+    # --- 优化 2: 调整参数，增加确定性 ---
     story_results = story_pipe(
         prompt, 
-        min_new_tokens=70,    # 确保故事不会太短
-        max_new_tokens=150,   # 给模型留出足够的空间完成叙述
+        min_new_tokens=70,    # 确保字数达标
+        max_new_tokens=130,   # 防止过长导致语音崩溃
         do_sample=True, 
-        temperature=0.7,
-        top_p=0.95,
-        repetition_penalty=1.1 # 防止模型为了凑字数而循环
+        temperature=0.6,      # 稍微降低随机性，让它更“听话”
+        top_p=0.9,
+        repetition_penalty=1.2 # 增强惩罚，防止复读
     )
     
     full_text = story_results[0]['generated_text']
     
-    # 4. 提取 AI 生成的部分
-    story = full_text.split("<|assistant|>")[-1].strip()
-    
-    # 5. 改进截断逻辑：按完整句子截断，而不是按字符数硬截断
-    # 如果生成的太长，我们可以找到最后一个句号的位置
-    if len(story.split()) > 110:
-        last_period = story.rfind('.', 0, 500) # 在前500字符内找最后一个句号
+    # --- 优化 3: 更稳健的提取逻辑 ---
+    if "<|assistant|>" in full_text:
+        story = full_text.split("<|assistant|>")[-1].strip()
+    else:
+        # 如果模型没按套路出牌，尝试提取最后一段
+        story = full_text.split("\n")[-1].strip()
+
+    # --- 优化 4: 确保故事从“Once upon a time”开始且完整 ---
+    if "Once upon a time," not in story:
+        story = "Once upon a time, " + story
+
+    # --- 优化 5: 句子级截断 (保护语音模型) ---
+    # 找到 300 字符内的最后一个句号，确保故事听起来是完整的
+    if len(story) > 300:
+        last_period = story.rfind('.', 0, 300)
         if last_period != -1:
             story = story[:last_period + 1]
+        else:
+            story = story[:300]
 
     return story
+
 
 def text2audio(story_text):
     audio_pipe = load_audio_model()
