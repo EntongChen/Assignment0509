@@ -49,7 +49,7 @@ def text2story(text):
             do_sample=True, 
             temperature=0.6,   # 降低随机性，让它更“老实”地围绕图片写
             top_p=0.9,
-            repetition_penalty=1.3 # 提高惩罚，防止它在图片描述上打转
+            repetition_penalty=1.8 # 提高惩罚，防止它在图片描述上打转
         )
     
     full_text = story_results[0]['generated_text']
