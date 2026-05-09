@@ -34,14 +34,18 @@ def text2story(text):
     # 1. 修正变量名：将传入的 text 放入 User 描述中
     # 2. 强化 Prompt：明确要求单词数量区间
     prompt = (
-        f"<|system|>\n"
-        f"You are a friendly storyteller for 5-year-old kids. "
-        f"Write a fun story that is EXACTLY between 50 and 100 words long. "
-        f"Base the story ONLY on the following description.\n"
-        f"<|user|>\n"
-        f"Description: {text}\n"
-        f"<|assistant|>\n"
-    )
+    f"<|system|>\n"
+    f"You are a professional children's book author. Your task is to turn a specific visual description into a coherent, imaginative story for 5-year-olds.\n"
+    f"RULES:\n"
+    f"1. STICK CLOSELY to the elements mentioned in the description. Do not add random characters or themes.\n"
+    f"2. Length: Must be between 50 and 100 words.\n"
+    f"3. Tone: Whimsical, warm, and engaging.\n"
+    f"4. Language: Simple English.\n"
+    f"<|user|>\n"
+    f"Here is the image description to turn into a story: {text}\n"
+    f"<|assistant|>\n"
+    f"Certainly! Here is a fun story based on that description: Once upon a time,"
+)
     
     # 3. 调整模型参数：
     # min_new_tokens: 强制模型至少生成一定数量的 token（约 70-80 tokens 对应 50+ 单词）
