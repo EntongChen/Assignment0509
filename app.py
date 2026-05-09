@@ -76,9 +76,12 @@ def main():
             border-radius: 15px;
             border-left: 5px solid #ff4b4b;
             box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+            color: #31333F;
+            font-size: 18px;
+            line-height: 1.6;
         }
         </style>
-    """, unsafe_allow_stdio=True)
+    """, unsafe_allow_html=True) # 已修复参数名
 
     # 顶部标题
     st.title("✨ My Magic Storybook ✨")
