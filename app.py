@@ -31,42 +31,51 @@ def img2text(url):
 def text2story(text):
     story_pipe = load_story_model()
     
-    # --- 核心改进：强力锚定 Prompt ---
-    # 1. 明确角色定位
-    # 2. 强制要求包含图片中的具体元素
-    # 3. 给出极其明确的开头，让模型无法逃避主题
+    # 1. 优化 Prompt：明确告诉模型字数要求
     prompt = (
-        f"Instruction: Write a children's story based ONLY on the following elements: {text}.\n"
-        f"Constraint: The story MUST be about {text} and nothing else.\n"
-        f"Story: In a beautiful world, we see {text}. Once upon a time,"
+        f"Write a short children's story (about 70 words) based on: {text}. "
+        f"The story must be engaging and complete. "
+        f"Story: Once upon a time,"
     )
     
-    with st.spinner("Focusing on your image..."):
+    with st.spinner("Generating a 50-100 word story..."):
         story_results = story_pipe(
             prompt, 
-            min_new_tokens=80, 
-            max_new_tokens=160, 
+            # --- 精准 Token 控制 ---
+            min_new_tokens=65,   # 确保至少有 50 个单词左右
+            max_new_tokens=120,  # 确保不超过 100 个单词左右
+            # ----------------------
             do_sample=True, 
-            temperature=0.6,   # 降低随机性，让它更“老实”地围绕图片写
+            temperature=0.7,
             top_p=0.9,
-            repetition_penalty=1.8 # 提高惩罚，防止它在图片描述上打转
+            repetition_penalty=1.2
         )
     
     full_text = story_results[0]['generated_text']
     
-    # --- 提取逻辑：只保留故事正文 ---
-    if "Story:" in full_text:
-        story = full_text.split("Story:")[-1].strip()
+    # 2. 提取故事正文
+    if "Once upon a time," in full_text:
+        story = "Once upon a time," + full_text.split("Once upon a time,")[-1]
     else:
         story = full_text.strip()
 
-    # --- 解决截断问题：确保停在句号上 ---
-    import re
-    last_punc = max(story.rfind('.'), story.rfind('!'), story.rfind('?'))
-    if last_punc != -1:
-        story = story[:last_punc + 1]
-        
+    # 3. 智能截断：确保停在句号上，且总字数不超过 100
+    words = story.split()
+    if len(words) > 100:
+        # 如果超过 100 字，先截取前 100 字
+        story = " ".join(words[:100])
+        # 然后回溯找到最后一个句号，保证故事完整
+        last_punc = max(story.rfind('.'), story.rfind('!'), story.rfind('?'))
+        if last_punc != -1:
+            story = story[:last_punc + 1]
+    
+    # 4. 最终检查：如果截得太短（少于 50 字），则保留原样（只要不超过 100）
+    if len(story.split()) < 50:
+        # 这种情况下通常是模型还没写完，我们可以稍微放宽截断
+        pass 
+
     return story
+
 
 
 # text2audio
