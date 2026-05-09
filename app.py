@@ -32,7 +32,7 @@ def img2text(url):
 def text2story(text):
     story_pipe = load_story_model()
     prompt = f"<|system|>\nYou are a friendly storyteller for 5-year-old kids. Write a very short, fun story (50-80 words) based ONLY on the following image description.\n<|user|>\nDescription: {scenario}\n<|assistant|>\nOnce upon a time,{text} "
-    
+    
     story_results = story_pipe(
         prompt, 
         min_new_tokens=70
