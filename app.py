@@ -36,6 +36,7 @@ def text2story(text):
         f"Write a short children's story (about 70 words) based on: {text}. "
         f"The story must be engaging and complete. "
         f"Story: Once upon a time,"
+        f"Write 6 sentences. "
     )
     
     with st.spinner("Generating a 50-100 word story..."):
