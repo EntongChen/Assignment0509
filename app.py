@@ -64,7 +64,7 @@ def text2story(text):
         
     # 再次确保长度符合 50-100 字要求，并截断以保护语音模型
     return story[:400]
-                                                                                         modify these codes, I want the story to be 50-100 words
+    
 def text2audio(story_text):
     audio_pipe = load_audio_model()
     
