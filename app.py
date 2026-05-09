@@ -31,9 +31,9 @@ def img2text(url):
 # text2story
 def text2story(text):
     story_pipe = load_story_model()
-    prompt = f"<|system|>\nYou are a friendly storyteller for 5-year-old kids. Write a very short, fun story (50-80 words) based ONLY on the following image description.\n<|user|>\nDescription: {scenario}\n<|assistant|>\nOnce upon a time,{text} "
+    prompt = f"<|system|>\nYou are a friendly storyteller for 5-year-old kids. Write a very short, fun story (50-80 words) based ONLY on the following image description.\n<|user|>\nDescription: {scenario}\n<|assistant|>\nOnce upon a time,{text} "
     
-    story_results = story_pipe(
+    story_results = story_pipe(
         prompt, 
         min_new_tokens=70
         max_new_tokens=120, 
@@ -42,12 +42,11 @@ def text2story(text):
         top_p=0.95
     )
     
-    full_text = story_results[0]['generated_text']
-    # 只提取 AI 生成的部分
-    story = full_text.split("<|assistant|>")[-1].strip()
+    full_text = story_results[0]['generated_text']
+    story = full_text.split("<|assistant|>")[-1].strip()
     
-    # 再次确保长度符合 50-100 字要求
-    return story[:400] # 截断以保护语音模型                                                                                               modify these codes, I want the story to be 50-100 words
+    # 再次确保长度符合 50-100 字要求
+    return story[:400] # 截断以保护语音模型                                                                                               modify these codes, I want the story to be 50-100 words
 
 
 
