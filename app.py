@@ -31,14 +31,23 @@ def img2text(url):
 # text2story
 def text2story(text):
     story_pipe = load_story_model()
-    # 补全逻辑：加入针对 3-10 岁儿童的 Prompt 和长度控制
-    prompt = f"Write a fun story for a kid of 3-10 years old based on this: {text}. The story should be 50-100 words."
-    story_results = story_pipe(prompt, max_new_tokens=100, min_new_tokens=50, do_sample=True)
-    story_text = story_results[0]['generated_text']
-    # 清理掉生成的文本中可能包含的 prompt
-    if prompt in story_text:
-        story_text = story_text.replace(prompt, "").strip()
-    return story_text[:300] 
+    # --- 关键：使用 Chat 格式的 Prompt 强迫模型听话 ---
+    prompt = f"<|system|>\nYou are a friendly storyteller for 5-year-old kids. Write a very short, fun story (50-80 words) based ONLY on the following image description.\n<|user|>\nDescription: {scenario}\n<|assistant|>\nOnce upon a time, "
+    
+    story_results = story_pipe(
+        prompt, 
+        max_new_tokens=120, 
+        do_sample=True, 
+        temperature=0.7,
+        top_p=0.95
+    )
+    
+    full_text = story_results[0]['generated_text']
+    # 只提取 AI 生成的部分
+    story = full_text.split("<|assistant|>")[-1].strip()
+    
+    # 再次确保长度符合 50-100 字要求
+    return story[:400] # 截断以保护语音模型 
 
 # text2audio
 def text2audio(story_text):
