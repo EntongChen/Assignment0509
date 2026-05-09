@@ -10,7 +10,7 @@ def load_img2text_model():
 
 @st.cache_resource
 def load_story_model():
-    return pipeline("text-generation", model="TinyLlama/TinyLlama-1.1B-Chat-v1.0")
+    return pipeline("text-generation", model="distilgpt2")
 
 @st.cache_resource
 def load_audio_model():
