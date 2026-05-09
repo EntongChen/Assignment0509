@@ -28,33 +28,27 @@ def img2text(url):
     text = image_to_text_model(url)[0]["generated_text"]
     return text
 
+# text2story
 def text2story(text):
-    story_pipe = load_story_model()
-
-prompt = f"""<|system|>
-You are a friendly storyteller for 5-year-old kids. Write a fun story that is EXACTLY between 50 and 100 words long. Base the story ONLY on the following description.
-<|user|>
-Description: {text}
-<|assistant|>
-"""   
-    
-    with st.spinner("Writing..."): # 增加一个加载动画，提升用户体验
-        story_results = story_pipe(
-            prompt, 
-            max_new_tokens=80,   # 限制在 80 token 以内（约 60 词）
-            min_new_tokens=40,   # 确保不少于 30-40 词
-            do_sample=True, 
-            temperature=0.8,
-            top_k=50
-        )
-    
-    story = story_results[0]['generated_text']
-    
-    # 清理掉 Prompt 部分
-    if "Once upon a time," in story:
-        story = "Once upon a time," + story.split("Once upon a time,")[-1]
-        
-    return story
+    story_pipe = load_story_model()
+    # --- 关键：使用 Chat 格式的 Prompt 强迫模型听话 ---
+    prompt = f"<|system|>\nYou are a friendly storyteller for 5-year-old kids. Write a very short, fun story (50-80 words) based ONLY on the following image description.\n<|user|>\nDescription: {scenario}\n<|assistant|>\nOnce upon a time,{text} "
+    
+    story_results = story_pipe(
+        prompt, 
+        min_new_tokens=70
+        max_new_tokens=120, 
+        do_sample=True, 
+        temperature=0.7,
+        top_p=0.95
+    )
+    
+    full_text = story_results[0]['generated_text']
+    # 只提取 AI 生成的部分
+    story = full_text.split("<|assistant|>")[-1].strip()
+    
+    # 再次确保长度符合 50-100 字要求
+    return story[:400] # 截断以保护语音模型                                                                                               modify these codes, I want the story to be 50-100 words
 
 
 
