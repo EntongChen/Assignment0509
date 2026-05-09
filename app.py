@@ -31,52 +31,27 @@ def img2text(url):
 def text2story(text):
     story_pipe = load_story_model()
     
-    # --- 优化 1: 简化指令，把图片描述放在最后 (Recency Bias 优化) ---
-    # 这样模型在开始生成时，脑子里最后留下的信息就是你的图片描述
-    prompt = (
-        f"<|system|>\n"
-        f"You are a children's storyteller. Write a 60-word story for a 5-year-old.\n"
-        f"Rule: The story MUST be about the elements in the description.\n"
-        f"<|user|>\n"
-        f"Description: {text}\n"
-        f"<|assistant|>\n"
-        f"Here is a story about {text}: Once upon a time,"
-    )
+    # 极简 Prompt，减少模型预处理负担
+    prompt = f"A short story for kids about {text}. Once upon a time,"
     
-    # --- 优化 2: 调整参数，增加确定性 ---
-    story_results = story_pipe(
-        prompt, 
-        min_new_tokens=70,    # 确保字数达标
-        max_new_tokens=130,   # 防止过长导致语音崩溃
-        do_sample=True, 
-        temperature=0.6,      # 稍微降低随机性，让它更“听话”
-        top_p=0.9,
-        repetition_penalty=1.2 # 增强惩罚，防止复读
-    )
+    with st.spinner("Writing..."): # 增加一个加载动画，提升用户体验
+        story_results = story_pipe(
+            prompt, 
+            max_new_tokens=80,   # 限制在 80 token 以内（约 60 词）
+            min_new_tokens=40,   # 确保不少于 30-40 词
+            do_sample=True, 
+            temperature=0.8,
+            top_k=50
+        )
     
-    full_text = story_results[0]['generated_text']
+    story = story_results[0]['generated_text']
     
-    # --- 优化 3: 更稳健的提取逻辑 ---
-    if "<|assistant|>" in full_text:
-        story = full_text.split("<|assistant|>")[-1].strip()
-    else:
-        # 如果模型没按套路出牌，尝试提取最后一段
-        story = full_text.split("\n")[-1].strip()
-
-    # --- 优化 4: 确保故事从“Once upon a time”开始且完整 ---
-    if "Once upon a time," not in story:
-        story = "Once upon a time, " + story
-
-    # --- 优化 5: 句子级截断 (保护语音模型) ---
-    # 找到 300 字符内的最后一个句号，确保故事听起来是完整的
-    if len(story) > 300:
-        last_period = story.rfind('.', 0, 300)
-        if last_period != -1:
-            story = story[:last_period + 1]
-        else:
-            story = story[:300]
-
+    # 清理掉 Prompt 部分
+    if "Once upon a time," in story:
+        story = "Once upon a time," + story.split("Once upon a time,")[-1]
+        
     return story
+
 
 
 def text2audio(story_text):
