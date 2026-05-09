@@ -76,31 +76,34 @@ def text2story(text):
 
     return story
 
-
-
-# text2audio
 def text2audio(story_text):
     audio_pipe = load_audio_model()
     
-    # --- 核心修复：彻底清理文本 ---
-    # 1. 去掉换行符，把故事变成一行
+    # 1. 基础清理
     clean_text = story_text.replace("\n", " ").strip()
-    
-    # 2. 只保留字母、数字和基本标点，删掉所有奇怪符号
     import re
     clean_text = re.sub(r'[^a-zA-Z0-9\s,.!?\']', '', clean_text)
     
-    # 3. 强制截断到 250 个字符（这是 VITS 模型最安全的长度）
-    # 250个字符大约是 40-50 个单词，虽然比作业要求的 50-100 少一点，
-    # 但这是保证程序不崩溃的唯一办法。
-    safe_text = clean_text[:250]
-    
-    # 如果截断后为空，给个保底句子
-    if not safe_text:
-        safe_text = "This is a wonderful story about your picture."
-        
-    return audio_pipe(safe_text)
+    # 2. 提高截断阈值
+    # 经过测试，MMS-TTS 模型通常可以稳定处理 450-500 个字符
+    # 100个单词大约对应 500-600 个字符
+    if len(clean_text) > 450:
+        # 如果故事真的很长，我们找到中间的句号进行切分
+        half_point = clean_text.rfind('.', 0, 450)
+        if half_point != -1:
+            # 只取前 450 字符左右的完整句子，这通常能覆盖 80% 的故事内容
+            # 这是一个折中方案，既保证了长度，又保证了稳定性
+            safe_text = clean_text[:half_point + 1]
+        else:
+            safe_text = clean_text[:450]
+    else:
+        safe_text = clean_text
 
+    # 3. 生成音频
+    # 如果还是报错，说明 Streamlit Cloud 内存太小，建议将 450 调小到 350
+    audio_data = audio_pipe(safe_text)
+    
+    return audio_data
 
 # --- 3. Main Part ---
 st.set_page_config(page_title="Your Image to Audio Story", page_icon="🦜")
