@@ -10,13 +10,13 @@ def load_img2text_model():
 
 @st.cache_resource
 def load_story_model():
-    return pipeline("text-generation", model="distilgpt2")
+    return pipeline("text-generation", model="gpt2")
 
 @st.cache_resource
 def load_audio_model():
     return pipeline("text-to-speech", model="Matthijs/mms-tts-eng")
 
-# --- 2. Function Part (保留老师给的函数名和结构) ---
+# --- 2. Function Part ---
 
 # img2text
 def img2text(url):
