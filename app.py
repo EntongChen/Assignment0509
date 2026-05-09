@@ -34,12 +34,12 @@ def text2story(text):
     prompt = f"<|system|>\nYou are a friendly storyteller for 5-year-old kids. Write a very short, fun story (50-80 words) based ONLY on the following image description.\n<|user|>\nDescription: {scenario}\n<|assistant|>\nOnce upon a time,{text} "
     
     story_results = story_pipe(
-        prompt, 
+        prompt, 
         min_new_tokens=70
-        max_new_tokens=120, 
-        do_sample=True, 
-        temperature=0.7,
-        top_p=0.95
+        max_new_tokens=120, 
+        do_sample=True, 
+        temperature=0.7,
+        top_p=0.95
     )
     
     full_text = story_results[0]['generated_text']
