@@ -28,26 +28,48 @@ def img2text(url):
     text = image_to_text_model(url)[0]["generated_text"]
     return text
 
-# text2story
 def text2story(text):
     story_pipe = load_story_model()
-    # --- 关键：使用 Chat 格式的 Prompt 强迫模型听话 ---
-    prompt = f"<|system|>\nYou are a friendly storyteller for 5-year-old kids. Write a very short, fun story (50-80 words) based ONLY on the following image description.\n<|user|>\nDescription: {scenario}\n<|assistant|>\nOnce upon a time,{text} "
     
+    # 1. 修正变量名：将传入的 text 放入 User 描述中
+    # 2. 强化 Prompt：明确要求单词数量区间
+    prompt = (
+        f"<|system|>\n"
+        f"You are a friendly storyteller for 5-year-old kids. "
+        f"Write a fun story that is EXACTLY between 50 and 100 words long. "
+        f"Base the story ONLY on the following description.\n"
+        f"<|user|>\n"
+        f"Description: {text}\n"
+        f"<|assistant|>\n"
+        f"Once upon a time, "
+    )
+    
+    # 3. 调整模型参数：
+    # min_new_tokens: 强制模型至少生成一定数量的 token（约 70-80 tokens 对应 50+ 单词）
+    # max_new_tokens: 限制上限（约 140-150 tokens 对应 100+ 单词）
     story_results = story_pipe(
         prompt, 
-        max_new_tokens=120, 
+        min_new_tokens=70,    # 确保故事不会太短
+        max_new_tokens=150,   # 给模型留出足够的空间完成叙述
         do_sample=True, 
         temperature=0.7,
-        top_p=0.95
+        top_p=0.95,
+        repetition_penalty=1.1 # 防止模型为了凑字数而循环
     )
     
     full_text = story_results[0]['generated_text']
-    # 只提取 AI 生成的部分
+    
+    # 4. 提取 AI 生成的部分（保留 "Once upon a time"）
     story = full_text.split("<|assistant|>")[-1].strip()
     
-    # 再次确保长度符合 50-100 字要求
-    return story[:400] # 截断以保护语音模型 
+    # 5. 改进截断逻辑：按完整句子截断，而不是按字符数硬截断
+    # 如果生成的太长，我们可以找到最后一个句号的位置
+    if len(story.split()) > 110:
+        last_period = story.rfind('.', 0, 500) # 在前500字符内找最后一个句号
+        if last_period != -1:
+            story = story[:last_period + 1]
+
+    return story
 
 def text2audio(story_text):
     audio_pipe = load_audio_model()
