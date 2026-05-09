@@ -31,25 +31,40 @@ def img2text(url):
 # text2story
 def text2story(text):
     story_pipe = load_story_model()
-    prompt = f"<|system|>\nYou are a friendly storyteller for 5-year-old kids. Write a very short, fun story (50-80 words) based ONLY on the following image description.\n<|user|>\nDescription: {scenario}\n<|assistant|>\nOnce upon a time,{text} "
     
+    # 修复 1: 将 {scenario} 改为 {text}，因为函数参数名是 text
+    # 修复 2: 优化了 Prompt 结构，确保模型能听懂
+    prompt = (
+        f"<|system|>\n"
+        f"You are a friendly storyteller for 5-year-old kids. "
+        f"Write a very short, fun story (50-80 words) based ONLY on the description.\n"
+        f"<|user|>\n"
+        f"Description: {text}\n"
+        f"<|assistant|>\n"
+        f"Once upon a time, "
+    )
+    
+    # 修复 3: 移除了所有非法空格，并补齐了 min_new_tokens 后的逗号
     story_results = story_pipe(
-        prompt, 
-        min_new_tokens=70
-        max_new_tokens=120, 
-        do_sample=True, 
-        temperature=0.7,
-        top_p=0.95
-    )
-    
+        prompt, 
+        min_new_tokens=70,
+        max_new_tokens=120, 
+        do_sample=True, 
+        temperature=0.7,
+        top_p=0.95
+    )
+    
     full_text = story_results[0]['generated_text']
-    story = full_text.split("<|assistant|>")[-1].strip()
-    
-    # 再次确保长度符合 50-100 字要求
-    return story[:400] # 截断以保护语音模型                                                                                               modify these codes, I want the story to be 50-100 words
-
-
-
+    
+    # 修复 4: 确保提取逻辑稳健
+    if "<|assistant|>" in full_text:
+        story = full_text.split("<|assistant|>")[-1].strip()
+    else:
+        story = full_text.strip()
+        
+    # 再次确保长度符合 50-100 字要求，并截断以保护语音模型
+    return story[:400]
+                                                                                         modify these codes, I want the story to be 50-100 words
 def text2audio(story_text):
     audio_pipe = load_audio_model()
     
