@@ -32,7 +32,19 @@ def text2story(text):
     story_pipe = load_story_model()
     
     # 极简 Prompt，减少模型预处理负担
-    prompt = f"A short story for kids about {text}. Once upon a time,"
+prompt = (
+    f"<|system|>\n"
+    f"You are a professional children's book author. Your task is to turn a specific visual description into a coherent, imaginative story for 5-year-olds.\n"
+    f"RULES:\n"
+    f"1. STICK CLOSELY to the elements mentioned in the description. Do not add random characters or themes.\n"
+    f"2. Length: Must be between 50 and 100 words.\n"
+    f"3. Tone: Whimsical, warm, and engaging.\n"
+    f"4. Language: Simple English.\n"
+    f"<|user|>\n"
+    f"Here is the image description to turn into a story: {text}\n"
+    f"<|assistant|>\n"
+    f"Certainly! Here is a fun story based on that description: Once upon a time,"
+)
     
     with st.spinner("Writing..."): # 增加一个加载动画，提升用户体验
         story_results = story_pipe(
