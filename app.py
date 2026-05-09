@@ -42,8 +42,8 @@ def text2story(text):
         story_results = story_pipe(
             prompt, 
             # --- 精准 Token 控制 ---
-            min_new_tokens=65,   # 确保至少有 50 个单词左右
-            max_new_tokens=120,  # 确保不超过 100 个单词左右
+            min_new_tokens=50,   # 确保至少有 50 个单词左右
+            max_new_tokens=100,  # 确保不超过 100 个单词左右
             # ----------------------
             do_sample=True, 
             temperature=0.7,
