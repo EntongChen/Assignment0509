@@ -30,7 +30,7 @@ def img2text(url):
 
 # text2story
 def text2story(text):
-    story_pipe = load_story_model()
+    story_pipe = load_story_model()
     # --- 关键：使用 Chat 格式的 Prompt 强迫模型听话 ---
     prompt = f"<|system|>\nYou are a friendly storyteller for 5-year-old kids. Write a very short, fun story (50-80 words) based ONLY on the following image description.\n<|user|>\nDescription: {scenario}\n<|assistant|>\nOnce upon a time,{text} "
     
