@@ -28,53 +28,45 @@ def img2text(url):
     text = image_to_text_model(url)[0]["generated_text"]
     return text
 
-# text2story
 def text2story(text):
     story_pipe = load_story_model()
     
-    # --- 优化 1: 强力关联 Prompt ---
-    # 我们把图片描述直接嵌入到故事的开头，让模型避无可避
+    # --- 核心改进：强力锚定 Prompt ---
+    # 1. 明确角色定位
+    # 2. 强制要求包含图片中的具体元素
+    # 3. 给出极其明确的开头，让模型无法逃避主题
     prompt = (
-        f"Write a short, complete story for a 5-year-old kid. "
-        f"The story must start with the scene: {text}. "
-        f"Story: Once upon a time, there was {text}. "
+        f"Instruction: Write a children's story based ONLY on the following elements: {text}.\n"
+        f"Constraint: The story MUST be about {text} and nothing else.\n"
+        f"Story: In a beautiful world, we see {text}. Once upon a time,"
     )
     
-    with st.spinner("Crafting a complete story..."):
+    with st.spinner("Focusing on your image..."):
         story_results = story_pipe(
             prompt, 
-            min_new_tokens=80,   # 确保字数达标
-            max_new_tokens=160,  # 给模型足够的空间写完结尾
+            min_new_tokens=80, 
+            max_new_tokens=160, 
             do_sample=True, 
-            temperature=0.7,     # 降低随机性，提高逻辑相关性
+            temperature=0.6,   # 降低随机性，让它更“老实”地围绕图片写
             top_p=0.9,
-            repetition_penalty=1.2,
-            # 告诉模型遇到句号、问号等可以考虑停止
-            eos_token_id=story_pipe.tokenizer.eos_token_id 
+            repetition_penalty=1.3 # 提高惩罚，防止它在图片描述上打转
         )
     
     full_text = story_results[0]['generated_text']
     
-    # --- 优化 2: 提取逻辑 ---
-    # 只保留 "Once upon a time" 之后的内容
-    if "Once upon a time," in full_text:
-        story = "Once upon a time," + full_text.split("Once upon a time,")[-1]
+    # --- 提取逻辑：只保留故事正文 ---
+    if "Story:" in full_text:
+        story = full_text.split("Story:")[-1].strip()
     else:
         story = full_text.strip()
 
-    # --- 优化 3: 解决“突然截断”问题 ---
-    # 寻找最后一个句号、感叹号或问号
+    # --- 解决截断问题：确保停在句号上 ---
     import re
-    # 找到最后一个标点符号的位置
-    last_punctuation = max(story.rfind('.'), story.rfind('!'), story.rfind('?'))
-    
-    if last_punctuation != -1:
-        # 截断到最后一个完整的句子，这样故事听起来就是完整的
-        story = story[:last_punctuation + 1]
-    
-    # 如果截断后太短，或者没找到标点，至少保证它不以半个单词结尾
-    return story.strip()
-
+    last_punc = max(story.rfind('.'), story.rfind('!'), story.rfind('?'))
+    if last_punc != -1:
+        story = story[:last_punc + 1]
+        
+    return story
 
 
 # text2audio
