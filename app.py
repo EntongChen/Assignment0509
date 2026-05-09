@@ -4,7 +4,7 @@ from PIL import Image
 import torch
 import re
 
-# --- 1. Model Caching (Ensures stability and performance on Streamlit Cloud) ---
+# 1. Model Caching 
 @st.cache_resource
 def load_img2text_model():
     return pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
@@ -18,8 +18,9 @@ def load_story_model():
 def load_audio_model():
     return pipeline("text-to-speech", model="Matthijs/mms-tts-eng")
 
-# --- 2. Core Functional Part ---
+# 2. Functional Part
 
+# img2text
 def img2text(url):
     """Converts the uploaded image into a text description."""
     image_to_text_model = load_img2text_model()
@@ -28,6 +29,7 @@ def img2text(url):
     text = image_to_text_model(url)[0]["generated_text"]
     return text
 
+# text2story
 def text2story(text):
     """Generates a 50-100 word story based on the image description."""
     story_pipe = load_story_model()
@@ -61,6 +63,7 @@ def text2story(text):
         story = story[:last_punc + 1]
     return story
 
+# text2audio
 def text2audio(story_text):
     """Converts the story text into audio data."""
     audio_pipe = load_audio_model()
@@ -70,7 +73,7 @@ def text2audio(story_text):
     safe_text = clean_text[:450]
     return audio_pipe(safe_text)
 
-# --- 3. Magic UI Design (User Friendly for Kids) ---
+# 3. Main Part (including UI design)
 
 def main():
     # Set page title and icon
