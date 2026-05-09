@@ -31,50 +31,38 @@ def img2text(url):
 def text2story(text):
     story_pipe = load_story_model()
     
-    # 1. 优化 Prompt：明确告诉模型字数要求
-    prompt = (
-        f"Write a short children's story (about 70 words) based on: {text}. "
-        f"The story must be engaging and complete. "
-        f"Story: Once upon a time,"
-        f"Write 6 sentences. "
-    )
+    # 极简 Prompt：去掉冗余指令，直接锚定图片内容
+    # 这种格式对 SmolLM 这种 Instruct 模型最友好，生成速度最快
+    prompt = f"<|user|>\nWrite a 60-word story for a kid about: {text}. Start with 'Once upon a time'.\n<|assistant|>\nOnce upon a time,"
     
-    with st.spinner("Generating a 50-100 word story..."):
+    with st.spinner("AI is thinking..."):
         story_results = story_pipe(
             prompt, 
-            # --- 精准 Token 控制 ---
-            min_new_tokens=50,   # 确保至少有 50 个单词左右
-            max_new_tokens=100,  # 确保不超过 100 个单词左右
-            # ----------------------
+            # 调整 Token 范围：60-100 Token 足够写出 50-80 词
+            min_new_tokens=60, 
+            max_new_tokens=100, 
             do_sample=True, 
             temperature=0.7,
             top_p=0.9,
-            repetition_penalty=1.2
+            # 显式指定停止符，防止模型在写完后还胡言乱语
+            eos_token_id=story_pipe.tokenizer.eos_token_id,
+            pad_token_id=story_pipe.tokenizer.eos_token_id
         )
     
     full_text = story_results[0]['generated_text']
     
-    # 2. 提取故事正文
+    # 提取故事正文
     if "Once upon a time," in full_text:
         story = "Once upon a time," + full_text.split("Once upon a time,")[-1]
     else:
         story = full_text.strip()
 
-    # 3. 智能截断：确保停在句号上，且总字数不超过 100
-    words = story.split()
-    if len(words) > 100:
-        # 如果超过 100 字，先截取前 100 字
-        story = " ".join(words[:100])
-        # 然后回溯找到最后一个句号，保证故事完整
-        last_punc = max(story.rfind('.'), story.rfind('!'), story.rfind('?'))
-        if last_punc != -1:
-            story = story[:last_punc + 1]
-    
-    # 4. 最终检查：如果截得太短（少于 50 字），则保留原样（只要不超过 100）
-    if len(story.split()) < 50:
-        # 这种情况下通常是模型还没写完，我们可以稍微放宽截断
-        pass 
-
+    # 智能截断：确保停在句号上
+    import re
+    last_punc = max(story.rfind('.'), story.rfind('!'), story.rfind('?'))
+    if last_punc != -1:
+        story = story[:last_punc + 1]
+        
     return story
 
 def text2audio(story_text):
