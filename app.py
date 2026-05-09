@@ -28,42 +28,33 @@ def img2text(url):
     text = image_to_text_model(url)[0]["generated_text"]
     return text
 
-# text2story
 def text2story(text):
     story_pipe = load_story_model()
     
-    # 修复 1: 将 {scenario} 改为 {text}，因为函数参数名是 text
-    # 修复 2: 优化了 Prompt 结构，确保模型能听懂
-    prompt = (
-        f"<|system|>\n"
-        f"You are a friendly storyteller for 5-year-old kids. "
-        f"Write a very short, fun story (50-80 words) based ONLY on the description.\n"
-        f"<|user|>\n"
-        f"Description: {text}\n"
-        f"<|assistant|>\n"
-        f"Once upon a time, "
-    )
+    # 1. 优化 Prompt：明确要求“详细”和“生动”
+    prompt = f"Write a detailed, fun, and imaginative story for a 5-year-old kid about {text}. Once upon a time,"
     
-    # 修复 3: 移除了所有非法空格，并补齐了 min_new_tokens 后的逗号
-    story_results = story_pipe(
-        prompt, 
-        min_new_tokens=70,
-        max_new_tokens=120, 
-        do_sample=True, 
-        temperature=0.7,
-        top_p=0.95
-    )
+    with st.spinner("Writing a longer story..."):
+        story_results = story_pipe(
+            prompt, 
+            # --- 关键调整 ---
+            min_new_tokens=80,   # 强制模型至少生成约 60-70 个单词
+            max_new_tokens=150,  # 允许模型生成最多约 110-120 个单词
+            # ----------------
+            do_sample=True, 
+            temperature=0.85,    # 稍微提高随机性，让故事更丰富
+            top_p=0.9,
+            repetition_penalty=1.2 # 防止模型为了凑字数而重复
+        )
     
-    full_text = story_results[0]['generated_text']
+    story = story_results[0]['generated_text']
     
-    # 修复 4: 确保提取逻辑稳健
-    if "<|assistant|>" in full_text:
-        story = full_text.split("<|assistant|>")[-1].strip()
-    else:
-        story = full_text.strip()
-        
-    # 再次确保长度符合 50-100 字要求，并截断以保护语音模型
-    return story[:400]
+    # 提取故事部分
+    if "Once upon a time," in story:
+        story = "Once upon a time," + story.split("Once upon a time,")[-1]
+    
+    return story
+
     
 def text2audio(story_text):
     audio_pipe = load_audio_model()
